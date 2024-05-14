@@ -18,10 +18,10 @@ public class ConvertCurrencyExecutor implements ExecutorChain {
     @Override
     public StandardizedTransaction execute(StandardizedTransaction transaction) {
         Double conversionRate;
-        if(conversionRates.contains(transaction.getToCurrency(), transaction.getFromCurrency())) {
-            conversionRate = conversionRates.get(transaction.getToCurrency(), transaction.getFromCurrency());
-        } else if(conversionRates.contains(transaction.getFromCurrency(), transaction.getToCurrency())) {
-            conversionRate = 1d / conversionRates.get(transaction.getFromCurrency(), transaction.getToCurrency());
+        if(conversionRates.contains(transaction.getFromCurrency(), transaction.getToCurrency())) {
+            conversionRate = conversionRates.get(transaction.getFromCurrency(), transaction.getToCurrency());
+        } else if(conversionRates.contains(transaction.getToCurrency(), transaction.getFromCurrency())) {
+            conversionRate = 1d / conversionRates.get(transaction.getToCurrency(), transaction.getFromCurrency());
         } else {
             throw new ConversionChainException("No Conversion Rate Provided");
         }

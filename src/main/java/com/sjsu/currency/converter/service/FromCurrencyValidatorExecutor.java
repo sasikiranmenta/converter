@@ -19,7 +19,7 @@ public class FromCurrencyValidatorExecutor implements ExecutorChain {
     @Override
     public StandardizedTransaction execute(StandardizedTransaction transaction) {
         if (!conversionCurrencySet.contains(transaction.getFromCurrency())) {
-            throw new ConversionChainException(transaction.getFromCurrency() + " is not present in conversion data");
+            throw new ConversionChainException("Invalid original currency code");
         }
         return next.execute(transaction);
     }

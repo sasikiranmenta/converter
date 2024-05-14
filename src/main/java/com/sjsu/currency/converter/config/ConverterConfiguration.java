@@ -52,6 +52,14 @@ public class ConverterConfiguration {
     @Bean
     public Table<String, String, Double> conversionRates() {
         Table<String, String, Double> conversionRates = HashBasedTable.create();
+        conversionRates.put("USD", "EUR", 0.94);
+        conversionRates.put("EUR", "GBP", 0.86);
+        conversionRates.put("GBP", "INR", 103.98);
+        conversionRates.put("AUD", "CAD", 0.89);
+        conversionRates.put("CAD", "USD", 0.73);
+        conversionRates.put("CHF", "AUD", 1.69);
+        conversionRates.put("USD", "CHF", 0.91);
+        conversionRates.put("JPY", "USD", 0.0065);
         return conversionRates;
     }
 }
