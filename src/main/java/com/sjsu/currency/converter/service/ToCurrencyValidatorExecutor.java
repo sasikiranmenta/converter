@@ -2,25 +2,29 @@ package com.sjsu.currency.converter.service;
 
 import com.sjsu.currency.converter.exception.ConversionChainException;
 import com.sjsu.currency.converter.models.StandardizedTransaction;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
 
 @Component("toValidator")
-@RequiredArgsConstructor
 public class ToCurrencyValidatorExecutor implements ExecutorChain {
 
-    @Setter
     private ExecutorChain next;
     private final Set<String> conversionCurrencySet;
 
+    public ToCurrencyValidatorExecutor(Set<String> conversionCurrencySet) {
+        this.conversionCurrencySet = conversionCurrencySet;
+    }
+
     @Override
     public StandardizedTransaction execute(StandardizedTransaction transaction) {
-        if(!conversionCurrencySet.contains(transaction.getToCurrency())) {
+        if (!conversionCurrencySet.contains(transaction.getToCurrency())) {
             throw new ConversionChainException("Invalid target currency code");
         }
         return next.execute(transaction);
+    }
+
+    public void setNext(ExecutorChain next) {
+        this.next = next;
     }
 }

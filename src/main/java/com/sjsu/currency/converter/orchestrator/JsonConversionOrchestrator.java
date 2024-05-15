@@ -4,7 +4,6 @@ import com.sjsu.currency.converter.fileparser.FileParser;
 import com.sjsu.currency.converter.models.StandardizedTransaction;
 import com.sjsu.currency.converter.service.ExecutorChain;
 import com.sjsu.currency.converter.strategy.standardizer.StandardizedTransactionConverter;
-import lombok.SneakyThrows;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
@@ -16,7 +15,6 @@ import java.util.List;
 @Component("json")
 public class JsonConversionOrchestrator implements ConversionOrchestrator {
 
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(JsonConversionOrchestrator.class);
     private final StandardizedTransactionConverter<JSONObject> standardizedTransactionConverter;
     private final FileParser<JSONObject> fileParser;
     private final ExecutorChain conversionChain;
@@ -33,31 +31,40 @@ public class JsonConversionOrchestrator implements ConversionOrchestrator {
     }
 
     @Override
-    @SneakyThrows
+
     public void orchestrateConversion(String inputFile, String outputFile) {
-        JSONObject jsonObject = fileParser.readFile(inputFile);
-        List<StandardizedTransaction> standardizedTransactions = convertToStandardizedList(jsonObject);
-        standardizedTransactions.forEach(transaction -> {
-                    try {
-                        conversionChain.execute(transaction);
-                    } catch (Exception e) {
-                        transaction.setException(e);
+        try {
+            JSONObject jsonObject = fileParser.readFile(inputFile);
+            List<StandardizedTransaction> standardizedTransactions = convertToStandardizedList(jsonObject);
+            standardizedTransactions.forEach(transaction -> {
+                        try {
+                            conversionChain.execute(transaction);
+                        } catch (Exception e) {
+                            transaction.setException(e);
+                        }
                     }
-                }
-        );
-        fileParser.writeToFile(standardizedTransactions, outputFile);
+            );
+            fileParser.writeToFile(standardizedTransactions, outputFile);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+
+        }
     }
 
-    @SneakyThrows
+
     private List<StandardizedTransaction> convertToStandardizedList(JSONObject jsonObject) {
-        List<StandardizedTransaction> list = new ArrayList<>();
-        JSONArray jsonArray = jsonObject.getJSONArray("transactions");
-        int bound = jsonArray.length();
-        for (int i = 0; i < bound; i++) {
-            JSONObject obj = jsonArray.getJSONObject(i);
-            StandardizedTransaction standardizedTransaction = standardizedTransactionConverter.convertToStandardizedTransaction(obj);
-            list.add(standardizedTransaction);
+        try {
+            List<StandardizedTransaction> list = new ArrayList<>();
+            JSONArray jsonArray = jsonObject.getJSONArray("transactions");
+            int bound = jsonArray.length();
+            for (int i = 0; i < bound; i++) {
+                JSONObject obj = jsonArray.getJSONObject(i);
+                StandardizedTransaction standardizedTransaction = standardizedTransactionConverter.convertToStandardizedTransaction(obj);
+                list.add(standardizedTransaction);
+            }
+            return list;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return list;
     }
 }
