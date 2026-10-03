@@ -254,29 +254,14 @@ public class MainActivity extends Activity {
 
         try {
             // Build one PDF containing one invoice per page.
-            File temp=new File(getCacheDir(),"selected_invoices.pdf");
+            // Draw directly onto the final PDF so invoice text stays vector/selectable.
             PdfDocument combined=new PdfDocument();
             int pageNumber=1;
             for(InvoiceConfig.Page p:selected) {
-                PdfDocument single=InvoicePdf.create(config,p);
-                File one=new File(getCacheDir(),"invoice_"+pageNumber+".pdf");
-                try(FileOutputStream out=new FileOutputStream(one)){ single.writeTo(out); }
-                single.close();
-
-                try(ParcelFileDescriptor fd=ParcelFileDescriptor.open(one,ParcelFileDescriptor.MODE_READ_ONLY);
-                    PdfRenderer renderer=new PdfRenderer(fd)) {
-                    PdfRenderer.Page rendered=renderer.openPage(0);
-                    Bitmap bitmap=Bitmap.createBitmap(595,842,Bitmap.Config.ARGB_8888);
-                    rendered.render(bitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
-                    rendered.close();
-
-                    PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(595,842,pageNumber++).create();
-                    PdfDocument.Page outPage=combined.startPage(info);
-                    outPage.getCanvas().drawBitmap(bitmap,0,0,null);
-                    combined.finishPage(outPage);
-                    bitmap.recycle();
-                }
-                one.delete();
+                PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(595,842,pageNumber++).create();
+                PdfDocument.Page outPage=combined.startPage(info);
+                InvoicePdf.renderPage(outPage.getCanvas(), config, p);
+                combined.finishPage(outPage);
             }
 
             repo.save(config);
