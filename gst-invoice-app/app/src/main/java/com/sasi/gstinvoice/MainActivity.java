@@ -5,7 +5,7 @@ import android.content.*;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.*;
-import android.provider.Settings;
+import android.provider.MediaStore;
 import android.view.*;
 import android.widget.*;
 import java.io.*;
@@ -16,11 +16,6 @@ public class MainActivity extends Activity {
     private LinearLayout form;
     private SharedPreferences sp;
     private final Map<String, EditText> fields = new LinkedHashMap<>();
-
-    private static final String[] FIELD_NAMES = {
-        "invoice_no","date","buyer_name","buyer_address","buyer_state","buyer_pan",
-        "buyer_gstin","place_supply","description","hsn_sac","amount","cgst_pct","sgst_pct","igst_pct"
-    };
 
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
@@ -144,34 +139,42 @@ public class MainActivity extends Activity {
                 sp.getString("decl","We declare that this invoice shows the actual price of the Services described and that all particulars are true and correct.\nSubject to Nellore Jurisdiction.")
             );
 
-            File dir = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "Invoices");
-            if (!dir.exists() && !dir.mkdirs()) throw new IOException("Cannot create output directory");
-            File out = new File(dir, "Invoice_"+val("invoice_no")+"_"+System.currentTimeMillis()+".pdf");
-            FileOutputStream fos = new FileOutputStream(out); doc.writeTo(fos); fos.close(); doc.close();
-
-            Intent share = new Intent(Intent.ACTION_SEND);
-            share.setType("application/pdf");
-            share.putExtra(Intent.EXTRA_STREAM, Uri.parse(androidx.core.content.FileProvider.class.getName()));
-            // Use a content URI only when a FileProvider is configured; for widest offline compatibility,
-            // expose the file with ACTION_OPEN_DOCUMENT through the Documents UI via a copy into Downloads.
-            File downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-            if (!downloads.exists()) downloads.mkdirs();
-            File publicFile = new File(downloads, out.getName());
-            copy(out, publicFile);
-            Toast.makeText(this, "PDF saved to Downloads/"+publicFile.getName(), Toast.LENGTH_LONG).show();
-            Intent view = new Intent(Intent.ACTION_VIEW);
-            view.setDataAndType(Uri.fromFile(publicFile), "application/pdf");
-            view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            try { startActivity(view); } catch (Exception ignored) {}
+            String fileName = "Invoice_" + val("invoice_no") + "_" + System.currentTimeMillis() + ".pdf";
+            if (Build.VERSION.SDK_INT >= 29) {
+                ContentResolver cr = getContentResolver();
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+                values.put(MediaStore.Downloads.MIME_TYPE, "application/pdf");
+                values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                Uri uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (uri == null) throw new IOException("Could not create Downloads file");
+                try (OutputStream os = cr.openOutputStream(uri)) {
+                    if (os == null) throw new IOException("Could not open Downloads file");
+                    doc.writeTo(os);
+                }
+                doc.close();
+                Toast.makeText(this, "PDF saved in Downloads/"+fileName, Toast.LENGTH_LONG).show();
+                viewPdf(uri);
+            } else {
+                File downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                if (!downloads.exists() && !downloads.mkdirs()) throw new IOException("Cannot create Downloads");
+                File out = new File(downloads, fileName);
+                try (FileOutputStream fos = new FileOutputStream(out)) { doc.writeTo(fos); }
+                doc.close();
+                Toast.makeText(this, "PDF saved in Downloads/"+fileName, Toast.LENGTH_LONG).show();
+            }
         } catch (Exception e) {
             Toast.makeText(this, "PDF generation failed: "+e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
-    private void copy(File a, File b) throws IOException {
-        InputStream in = new FileInputStream(a); OutputStream out = new FileOutputStream(b);
-        byte[] buf=new byte[8192]; int n; while((n=in.read(buf))>0) out.write(buf,0,n); in.close(); out.close();
+    private void viewPdf(Uri uri) {
+        Intent view = new Intent(Intent.ACTION_VIEW);
+        view.setDataAndType(uri, "application/pdf");
+        view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try { startActivity(view); } catch (Exception ignored) {}
     }
+
     private String val(String k){ return fields.get(k).getText().toString().trim(); }
     private double num(String k){ try{return Double.parseDouble(val(k).replace(",",""));}catch(Exception e){return 0;} }
     private LinearLayout.LayoutParams lp(){ return new LinearLayout.LayoutParams(-1, -2); }
