@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -120,6 +121,10 @@ public class MainActivity extends Activity {
 
         for (int i = 0; i < config.pages.size(); i++) addPageCard(root, i);
 
+        Button batch = action("▣  Generate bills for a month", true);
+        batch.setOnClickListener(v -> showBatchGenerate());
+        root.addView(batch, spaced(10));
+
         Button add = action("＋  Add new page", true);
         add.setOnClickListener(v -> addNewPage());
         root.addView(add, spaced(10));
@@ -132,6 +137,151 @@ public class MainActivity extends Activity {
         foot.setGravity(Gravity.CENTER);
         root.addView(foot);
         setContentView(sv);
+    }
+
+    private void showBatchGenerate() {
+        final Calendar now = Calendar.getInstance();
+        final int[] selectedMonth = {now.get(Calendar.MONTH)};
+        final int[] selectedYear = {now.get(Calendar.YEAR)};
+        final boolean[] checked = new boolean[config.pages.size()];
+        java.util.Arrays.fill(checked, true);
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(20), dp(8), dp(20), dp(4));
+
+        TextView hint = caption("Select the billing month, choose the pages/customers, and generate all selected PDFs together. Invoice dates and month names are updated automatically.");
+        root.addView(hint);
+
+        LinearLayout monthRow = new LinearLayout(this);
+        monthRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView monthLabel = new TextView(this);
+        monthLabel.setText("Month");
+        monthLabel.setTextSize(14);
+        monthLabel.setPadding(0,0,dp(8),0);
+        monthRow.addView(monthLabel);
+
+        android.widget.Spinner monthSpinner = new android.widget.Spinner(this);
+        String[] months = new String[12];
+        for(int i=0;i<12;i++) months[i]=new SimpleDateFormat("MMMM", Locale.US).format(new Date(126, i, 1));
+        android.widget.ArrayAdapter<String> monthAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, months);
+        monthSpinner.setAdapter(monthAdapter);
+        monthSpinner.setSelection(selectedMonth[0]);
+        monthSpinner.setPadding(dp(4),0,dp(4),0);
+        monthRow.addView(monthSpinner, weight(1, 10));
+
+        TextView yearLabel = new TextView(this);
+        yearLabel.setText("Year");
+        yearLabel.setTextSize(14);
+        yearLabel.setPadding(dp(8),0,dp(8),0);
+        monthRow.addView(yearLabel);
+
+        android.widget.NumberPicker yearPicker = new android.widget.NumberPicker(this);
+        yearPicker.setMinValue(2020);
+        yearPicker.setMaxValue(2100);
+        yearPicker.setValue(selectedYear[0]);
+        monthRow.addView(yearPicker);
+        root.addView(monthRow);
+
+        TextView selectHint = heading("Bills to generate", 16);
+        selectHint.setPadding(0, dp(16), 0, dp(4));
+        root.addView(selectHint);
+
+        final String[] labels = new String[config.pages.size()];
+        for(int i=0;i<config.pages.size();i++) {
+            InvoiceConfig.Page p=config.pages.get(i);
+            labels[i]="Invoice "+safe(p.invoiceNo)+"  ·  "+safe(p.buyerName);
+        }
+
+        final android.widget.MultiAutoCompleteTextView unused = null;
+        final android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
+            .setTitle("Generate monthly bills")
+            .setMultiChoiceItems(labels, checked, (d, which, isChecked) -> checked[which]=isChecked)
+            .setView(root)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Generate selected", null)
+            .create();
+
+        dialog.setOnShowListener(d -> {
+            Button positive=dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE);
+            positive.setOnClickListener(v -> {
+                int count=0;
+                for(boolean b:checked) if(b) count++;
+                if(count==0) {
+                    Toast.makeText(this,"Select at least one bill.",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                int month=monthSpinner.getSelectedItemPosition();
+                int year=yearPicker.getValue();
+                dialog.dismiss();
+                generateBatch(checked, year, month);
+            });
+        });
+        dialog.show();
+    }
+
+    private void generateBatch(boolean[] checked, int year, int month) {
+        Calendar cal=Calendar.getInstance();
+        cal.set(Calendar.YEAR,year);
+        cal.set(Calendar.MONTH,month);
+        cal.set(Calendar.DAY_OF_MONTH,1);
+        cal.set(Calendar.DAY_OF_MONTH,cal.getActualMaximum(Calendar.DAY_OF_MONTH));
+        String invoiceDate=new SimpleDateFormat("dd.MM.yyyy",Locale.US).format(cal.getTime());
+        String monthName=new SimpleDateFormat("MMMM",Locale.US).format(cal.getTime());
+
+        int generated=0;
+        StringBuilder failures=new StringBuilder();
+        for(int i=0;i<config.pages.size() && i<checked.length;i++) {
+            if(!checked[i]) continue;
+            InvoiceConfig.Page original=config.pages.get(i);
+            InvoiceConfig.Page p=original.copy();
+
+            // Update the monthly fields on the saved configuration as well as the generated copy.
+            p.invoiceDate=invoiceDate;
+            p.pageName=replaceMonthName(p.pageName,monthName);
+            p.description=replaceMonthName(p.description,monthName);
+            original.invoiceDate=p.invoiceDate;
+            original.pageName=p.pageName;
+            original.description=p.description;
+
+            try {
+                PdfDocument doc=InvoicePdf.create(config,p);
+                String fileName="GST_Invoice_"+safe(p.invoiceNo)+"_"+year+String.format(Locale.US,"%02d",month+1)+".pdf";
+                savePdf(doc,fileName);
+                doc.close();
+                generated++;
+            } catch(Exception e) {
+                failures.append("Invoice ").append(safe(p.invoiceNo)).append(": ").append(e.getMessage()).append("\\n");
+            }
+        }
+        repo.save(config);
+        String message=generated+" bill"+(generated==1?"":"s")+" generated for "+monthName+" "+year+"\\nSaved in Downloads/GST Invoice.";
+        if(failures.length()>0) message+="\\n\\nSome bills failed:\\n"+failures;
+        new android.app.AlertDialog.Builder(this)
+            .setTitle(generated==checkedCount(checked) ? "Bills generated" : "Generation completed")
+            .setMessage(message)
+            .setPositiveButton("Done",(d,w)->showHome())
+            .show();
+    }
+
+    private int checkedCount(boolean[] checked) {
+        int n=0; for(boolean b:checked) if(b)n++; return n;
+    }
+
+    private String replaceMonthName(String text,String newMonth) {
+        if(text==null || text.isEmpty()) return text;
+        String[] names={"January","February","March","April","May","June","July","August","September","October","November","December"};
+        String result=text;
+        for(String old:names) {
+            result=result.replaceAll("(?i)\\\\b"+old+"\\\\b", newMonth);
+        }
+        // Also support abbreviated month names such as Aug/Sep/Oct in user-created templates.
+        String[] abbr={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+        for(String old:abbr) {
+            result=result.replaceAll("(?i)\\\\b"+old+"\\\\b", newMonth.substring(0,3));
+        }
+        return result;
     }
 
     private void addPageCard(LinearLayout root, int index) {
