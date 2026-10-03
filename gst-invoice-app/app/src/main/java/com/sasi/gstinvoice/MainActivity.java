@@ -229,7 +229,9 @@ public class MainActivity extends Activity {
         cal.set(Calendar.MONTH,month);
         cal.set(Calendar.DAY_OF_MONTH,1);
         cal.set(Calendar.DAY_OF_MONTH,cal.getActualMaximum(Calendar.DAY_OF_MONTH));
-        String invoiceDate=new SimpleDateFormat("d.M.yy",Locale.US).format(cal.getTime());
+        selectedDate.set(Calendar.YEAR,year);
+        selectedDate.set(Calendar.MONTH,month);
+        String invoiceDate=new SimpleDateFormat("d.M.yy",Locale.US).format(selectedDate.getTime());
         String monthName=new SimpleDateFormat("MMMM",Locale.US).format(cal.getTime());
 
         java.util.List<InvoiceConfig.Page> selected=new java.util.ArrayList<>();
