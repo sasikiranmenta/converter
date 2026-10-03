@@ -4,9 +4,12 @@ import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.pdf.PdfDocument;
+import android.graphics.pdf.PdfRenderer;
+import android.os.ParcelFileDescriptor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -230,37 +233,67 @@ public class MainActivity extends Activity {
         String invoiceDate=new SimpleDateFormat("dd.MM.yyyy",Locale.US).format(cal.getTime());
         String monthName=new SimpleDateFormat("MMMM",Locale.US).format(cal.getTime());
 
-        int generated=0;
-        StringBuilder failures=new StringBuilder();
+        java.util.List<InvoiceConfig.Page> selected=new java.util.ArrayList<>();
         for(int i=0;i<config.pages.size() && i<checked.length;i++) {
             if(!checked[i]) continue;
             InvoiceConfig.Page original=config.pages.get(i);
             InvoiceConfig.Page p=original.copy();
-
-            // Update the monthly fields on the saved configuration as well as the generated copy.
             p.invoiceDate=invoiceDate;
             p.pageName=replaceMonthName(p.pageName,monthName);
             p.description=replaceMonthName(p.description,monthName);
             original.invoiceDate=p.invoiceDate;
             original.pageName=p.pageName;
             original.description=p.description;
-
-            try {
-                PdfDocument doc=InvoicePdf.create(config,p);
-                String fileName="GST_Invoice_"+safe(p.invoiceNo)+"_"+year+String.format(Locale.US,"%02d",month+1)+".pdf";
-                savePdf(doc,fileName);
-                doc.close();
-                generated++;
-            } catch(Exception e) {
-                failures.append("Invoice ").append(safe(p.invoiceNo)).append(": ").append(e.getMessage()).append("\\n");
-            }
+            selected.add(p);
         }
-        repo.save(config);
-        String message=generated+" bill"+(generated==1?"":"s")+" generated for "+monthName+" "+year+"\\nSaved in Downloads/GST Invoice.";
-        if(failures.length()>0) message+="\\n\\nSome bills failed:\\n"+failures;
+
+        if(selected.isEmpty()) {
+            Toast.makeText(this,"Select at least one bill.",Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            // Build one PDF containing one invoice per page.
+            File temp=new File(getCacheDir(),"selected_invoices.pdf");
+            PdfDocument combined=new PdfDocument();
+            int pageNumber=1;
+            for(InvoiceConfig.Page p:selected) {
+                PdfDocument single=InvoicePdf.create(config,p);
+                File one=new File(getCacheDir(),"invoice_"+pageNumber+".pdf");
+                try(FileOutputStream out=new FileOutputStream(one)){ single.writeTo(out); }
+                single.close();
+
+                try(ParcelFileDescriptor fd=ParcelFileDescriptor.open(one,ParcelFileDescriptor.MODE_READ_ONLY);
+                    PdfRenderer renderer=new PdfRenderer(fd)) {
+                    PdfRenderer.Page rendered=renderer.openPage(0);
+                    Bitmap bitmap=Bitmap.createBitmap(595,842,Bitmap.Config.ARGB_8888);
+                    rendered.render(bitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
+                    rendered.close();
+
+                    PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(595,842,pageNumber++).create();
+                    PdfDocument.Page outPage=combined.startPage(info);
+                    outPage.getCanvas().drawBitmap(bitmap,0,0,null);
+                    combined.finishPage(outPage);
+                    bitmap.recycle();
+                }
+                one.delete();
+            }
+
+            repo.save(config);
+            String fileName="GST_Invoices_"+year+String.format(Locale.US,"%02d",month+1)+"_"+new SimpleDateFormat("yyyyMMdd_HHmmss",Locale.US).format(new Date())+".pdf";
+            Uri uri=savePdf(combined,fileName);
+            combined.close();
+            temp.delete();
+
+            Toast.makeText(this,selected.size()+" bills combined into one PDF. Opening…",Toast.LENGTH_LONG).show();
+            viewPdf(uri);
+        } catch(Exception e) {
+            Toast.makeText(this,"Could not create combined PDF: "+e.getMessage(),Toast.LENGTH_LONG).show();
+        }
+
         new android.app.AlertDialog.Builder(this)
-            .setTitle(generated==checkedCount(checked) ? "Bills generated" : "Generation completed")
-            .setMessage(message)
+            .setTitle("Bills generated")
+            .setMessage(selected.size()+" selected bills were combined into one PDF for "+monthName+" "+year+".")
             .setPositiveButton("Done",(d,w)->showHome())
             .show();
     }
