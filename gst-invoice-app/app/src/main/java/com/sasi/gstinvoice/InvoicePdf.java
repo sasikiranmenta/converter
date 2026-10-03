@@ -161,7 +161,7 @@ public final class InvoicePdf {
         italic.setTextSize(8.7f);
         center(c, "Customer’s Seal and Signature", (L + DECLARATION_SPLIT) / 2f, 728f, italic);
         normal.setTextSize(8.7f);
-        center(c, "Authorised Signatory", (DECLARATION_SPLIT + R) / 2f, 738f, normal);
+        center(c, "                 ", (DECLARATION_SPLIT + R) / 2f, 738f, normal);
 
     }
 
