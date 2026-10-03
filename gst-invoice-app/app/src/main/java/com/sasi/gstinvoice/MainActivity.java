@@ -144,7 +144,7 @@ public class MainActivity extends Activity {
     private void showBatchGenerate() {
         final Calendar now = Calendar.getInstance();
         final int[] selectedMonth = {now.get(Calendar.MONTH)};
-        final int[] selectedYear = {now.get(Calendar.YEAR)};
+        final int[] selectedYear = {now.get(Calendar.YEAR)};\n        final Calendar selectedDate = Calendar.getInstance();\n        selectedDate.set(Calendar.YEAR, selectedYear[0]);\n        selectedDate.set(Calendar.MONTH, selectedMonth[0]);\n        selectedDate.set(Calendar.DAY_OF_MONTH, selectedDate.getActualMaximum(Calendar.DAY_OF_MONTH));
         final boolean[] checked = new boolean[config.pages.size()];
         java.util.Arrays.fill(checked, true);
 
@@ -184,7 +184,7 @@ public class MainActivity extends Activity {
         yearPicker.setMaxValue(2100);
         yearPicker.setValue(selectedYear[0]);
         monthRow.addView(yearPicker);
-        root.addView(monthRow);
+        root.addView(monthRow);\n\n        TextView dateLabel = new TextView(this);\n        dateLabel.setText("Invoice date");\n        dateLabel.setTextSize(14);\n        dateLabel.setPadding(0, dp(12), dp(8), 0);\n        root.addView(dateLabel);\n        Button dateButton = action(new SimpleDateFormat("d.M.yy", Locale.US).format(selectedDate.getTime()), false);\n        dateButton.setOnClickListener(v -> {\n            Calendar current = (Calendar) selectedDate.clone();\n            android.app.DatePickerDialog picker = new android.app.DatePickerDialog(this, (view, y, m, d) -> {\n                selectedDate.set(Calendar.YEAR, y);\n                selectedDate.set(Calendar.MONTH, m);\n                selectedDate.set(Calendar.DAY_OF_MONTH, d);\n                dateButton.setText(new SimpleDateFormat("d.M.yy", Locale.US).format(selectedDate.getTime()));\n            }, current.get(Calendar.YEAR), current.get(Calendar.MONTH), current.get(Calendar.DAY_OF_MONTH));\n            picker.show();\n        });\n        root.addView(dateButton, spaced(6));
 
         TextView selectHint = heading("Bills to generate", 16);
         selectHint.setPadding(0, dp(16), 0, dp(4));
@@ -217,13 +217,13 @@ public class MainActivity extends Activity {
                 int month=monthSpinner.getSelectedItemPosition();
                 int year=yearPicker.getValue();
                 dialog.dismiss();
-                generateBatch(checked, year, month);
+                generateBatch(checked, year, month, (Calendar) selectedDate.clone());
             });
         });
         dialog.show();
     }
 
-    private void generateBatch(boolean[] checked, int year, int month) {
+    private void generateBatch(boolean[] checked, int year, int month, Calendar selectedDate) {
         Calendar cal=Calendar.getInstance();
         cal.set(Calendar.YEAR,year);
         cal.set(Calendar.MONTH,month);
