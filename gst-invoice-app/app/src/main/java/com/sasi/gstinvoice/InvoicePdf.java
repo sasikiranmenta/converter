@@ -61,7 +61,7 @@ public final class InvoicePdf {
         c.drawRect(L, T, R, SIGNATURE_BOTTOM, line);
         c.drawLine(SELLER_RIGHT, T, SELLER_RIGHT, HEADER_BOTTOM, line);
         c.drawLine(META_RIGHT, T, META_RIGHT, HEADER_BOTTOM, line);
-        c.drawLine(L, HEADER_MID, R, HEADER_MID, line);
+        // Only the invoice metadata columns are split at this height in the original scan.\n        c.drawLine(SELLER_RIGHT, HEADER_MID, R, HEADER_MID, line);
         c.drawLine(L, HEADER_BOTTOM, R, HEADER_BOTTOM, line);
         c.drawLine(L, BUYER_BOTTOM, R, BUYER_BOTTOM, line);
 
@@ -86,14 +86,16 @@ public final class InvoicePdf {
         left(c, "Buyer’s Order No.", SELLER_RIGHT + 6f, 109f, normal);
         left(c, "Date : " + safe(page.buyerOrderDate), META_RIGHT + 7f, 109f, normal);
 
-        // Buyer block.
+        // Buyer block. Keep labels and values on a single vertical alignment, matching the scan.
         float y = 143f;
-        y = labelLine(c, "Name : ", page.buyerName, L + 7f, y, R - 7f, bold);
-        y = addressLines(c, page.buyerAddress, L + 7f, y, R - 7f, normal);
-        y = labelLine(c, "State : ", page.buyerState, L + 7f, y, R - 7f, normal);
-        y = labelLine(c, "PAN / IT No. : ", page.buyerPan, L + 7f, y, R - 7f, normal);
-        y = labelLine(c, "GSTIN : ", page.buyerGstin, L + 7f, y, R - 7f, bold);
-        labelLine(c, "Place of Supply : ", page.placeOfSupply, L + 7f, y, R - 7f, normal);
+        float buyerLabelX = L + 7f;
+        float buyerValueX = L + 55f;
+        y = buyerLine(c, "Name :", page.buyerName, buyerLabelX, buyerValueX, y, bold, R - 7f);
+        y = buyerAddressLines(c, page.buyerAddress, buyerLabelX, buyerValueX, y, normal, R - 7f);
+        y = buyerLine(c, "State :", page.buyerState, buyerLabelX, buyerValueX, y, normal, R - 7f);
+        y = buyerLine(c, "PAN / IT No. :", page.buyerPan, buyerLabelX, buyerValueX, y, normal, R - 7f);
+        y = buyerLine(c, "GSTIN :", page.buyerGstin, buyerLabelX, buyerValueX, y, bold, R - 7f);
+        buyerLine(c, "Place of Supply :", page.placeOfSupply, buyerLabelX, buyerValueX, y, normal, R - 7f);
 
         // Service table.
         c.drawLine(L, TABLE_HEADER_BOTTOM, R, TABLE_HEADER_BOTTOM, line);
@@ -165,25 +167,23 @@ public final class InvoicePdf {
 
     }
 
-    private static float labelLine(Canvas c, String label, String value, float x, float y, float maxX, Paint p) {
-        c.drawText(label + safe(value), x, y, p);
+    private static float buyerLine(Canvas c, String label, String value, float labelX, float valueX, float y, Paint p, float maxX) {
+        c.drawText(label, labelX, y, p);
+        String v = safe(value);
+        if (!v.isEmpty()) wrap(c, v, valueX, y, maxX, 14.5f, p);
         return y + 14.5f;
     }
 
-    private static float addressLines(Canvas c, String address, float x, float y, float maxX, Paint p) {
+    private static float buyerAddressLines(Canvas c, String address, float labelX, float valueX, float y, Paint p, float maxX) {
+        c.drawText("Address :", labelX, y, p);
         if (address == null || address.trim().isEmpty()) return y + 14.5f;
         String[] lines = address.replace("\r", "").split("\n");
-        if (lines.length == 1) {
-            wrap(c, "Address : " + lines[0], x, y, maxX, 14.5f, p);
-            return y + 29f;
+        float lineY = y;
+        for (String lineText : lines) {
+            wrap(c, lineText, valueX, lineY, maxX, 14.5f, p);
+            lineY += 14.5f;
         }
-        c.drawText("Address : " + lines[0], x, y, p);
-        y += 14.5f;
-        for (int i = 1; i < lines.length; i++) {
-            c.drawText(lines[i], x + 48f, y, p);
-            y += 14.5f;
-        }
-        return y;
+        return lineY;
     }
 
     private static void drawTaxRow(Canvas c, Paint line, Paint text, String label, double value, float top, float row) {
