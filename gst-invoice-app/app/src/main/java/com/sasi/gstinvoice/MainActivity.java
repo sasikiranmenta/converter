@@ -119,7 +119,7 @@ public class MainActivity extends Activity {
 
         LinearLayout intro = card();
         intro.addView(heading("Invoice pages", 19));
-        intro.addView(caption(config.pages.size() + " saved page configuration" + (config.pages.size() == 1 ? "" : "s") + ". Choose a page to edit or generate."));
+        intro.addView(caption(config.pages.size() + " saved bill configuration" + (config.pages.size() == 1 ? "" : "s") + ". Choose a bill to edit or generate."));
         root.addView(intro, spaced(14));
 
         for (int i = 0; i < config.pages.size(); i++) addPageCard(root, i);
@@ -194,7 +194,7 @@ public class MainActivity extends Activity {
         final String[] labels = new String[config.pages.size()];
         for(int i=0;i<config.pages.size();i++) {
             InvoiceConfig.Page p=config.pages.get(i);
-            labels[i]="Invoice "+safe(p.invoiceNo)+"  ·  "+safe(p.buyerName);
+            labels[i]=safe(p.pageName)+"  ·  Invoice "+safe(p.invoiceNo);
         }
 
         final android.widget.MultiAutoCompleteTextView unused = null;
@@ -321,9 +321,9 @@ public class MainActivity extends Activity {
         InvoiceConfig.Page p = config.pages.get(index);
         LinearLayout c = card();
 
-        TextView top = heading("Page " + (index + 1) + "  ·  Invoice " + safe(p.invoiceNo), 17);
+        TextView top = heading(safe(p.pageName), 17);
         c.addView(top);
-        c.addView(caption(safe(p.pageName)));
+        c.addView(caption("Invoice " + safe(p.invoiceNo) + "  ·  " + safe(p.buyerName)));
         TextView customer = new TextView(this);
         customer.setText(safe(p.buyerName));
         customer.setTextSize(14);
@@ -358,7 +358,7 @@ public class MainActivity extends Activity {
     private void showPageActions(final int index) {
         String[] choices = {"Duplicate page", "Rename page", "Delete page"};
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Page " + (index + 1))
+            .setTitle(safe(config.pages.get(index).pageName))
             .setItems(choices, (d, which) -> {
                 if (which == 0) duplicatePage(index);
                 else if (which == 1) renamePage(index);
@@ -395,7 +395,7 @@ public class MainActivity extends Activity {
         e.setSingleLine(true);
         e.setPadding(dp(10),dp(10),dp(10),dp(10));
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Page name")
+            .setTitle("Bill name")
             .setView(e)
             .setNegativeButton("Cancel", null)
             .setPositiveButton("Save", (d,w) -> {
@@ -413,7 +413,7 @@ public class MainActivity extends Activity {
         }
         new android.app.AlertDialog.Builder(this)
             .setTitle("Delete page?")
-            .setMessage("Page " + (index + 1) + " and its invoice values will be removed from this device.")
+            .setMessage("Bill "" + safe(config.pages.get(index).pageName) + "" and its invoice values will be removed from this device.")
             .setNegativeButton("Cancel", null)
             .setPositiveButton("Delete", (d,w) -> {
                 config.pages.remove(index);
@@ -431,10 +431,10 @@ public class MainActivity extends Activity {
         ScrollView sv = new ScrollView(this);
         LinearLayout root = screenRoot(sv);
         root.addView(heading("Edit invoice", 25));
-        root.addView(caption("Page " + (pageIndex + 1) + " · Invoice " + safe(p.invoiceNo)), spaced(8));
+        root.addView(caption("Bill · Invoice " + safe(p.invoiceNo)), spaced(8));
 
         addSection(root, "Invoice details", "Number and date shown in the top-right block");
-        field(root, "page_name", "Page name", p.pageName, false);
+        field(root, "page_name", "Bill name", p.pageName, false);
         field(root, "invoice_no", "Invoice No.", p.invoiceNo, false);
         field(root, "invoice_date", "Invoice Date", p.invoiceDate, false);
         field(root, "buyer_order_no", "Buyer’s Order No.", p.buyerOrderNo, false);
