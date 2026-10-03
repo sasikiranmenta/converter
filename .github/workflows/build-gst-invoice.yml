@@ -29,3 +29,5 @@ jobs:
         with:
           name: gst-invoice-debug-apk
           path: gst-invoice-app/app/build/outputs/apk/debug/app-debug.apk
+
+# Build workflow refreshed after compiler fix.
