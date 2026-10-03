@@ -268,7 +268,6 @@ public class MainActivity extends Activity {
             String fileName="GST_Invoices_"+year+String.format(Locale.US,"%02d",month+1)+"_"+new SimpleDateFormat("yyyyMMdd_HHmmss",Locale.US).format(new Date())+".pdf";
             Uri uri=savePdf(combined,fileName);
             combined.close();
-            temp.delete();
 
             Toast.makeText(this,selected.size()+" bills combined into one PDF. Opening…",Toast.LENGTH_LONG).show();
             viewPdf(uri);
