@@ -35,9 +35,18 @@ public final class InvoicePdf {
         PdfDocument doc = new PdfDocument();
         PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(595, 842, 1).create();
         PdfDocument.Page pdfPage = doc.startPage(info);
-        Canvas c = pdfPage.getCanvas();
+        renderPage(pdfPage.getCanvas(), config, page);
+        doc.finishPage(pdfPage);
+        return doc;
+    }
+
+    /** Draws directly onto a PdfDocument canvas so all invoice text remains vector text. */
+    public static void renderPage(Canvas c, InvoiceConfig config, InvoiceConfig.Page page) {
         c.drawColor(Color.WHITE);
 
+        Paint normal = paint(8.8f, false, false);
+        Paint bold = paint(9.0f, true, false);
+        Paint italic = paint(8.6f, false, true);
         Paint normal = paint(8.8f, false, false);
         Paint bold = paint(9.0f, true, false);
         Paint italic = paint(8.6f, false, true);
@@ -157,8 +166,6 @@ public final class InvoicePdf {
         normal.setTextSize(8.7f);
         center(c, "Authorised Signatory", (DECLARATION_SPLIT + R) / 2f, 738f, normal);
 
-        doc.finishPage(pdfPage);
-        return doc;
     }
 
     private static float labelLine(Canvas c, String label, String value, float x, float y, float maxX, Paint p) {
