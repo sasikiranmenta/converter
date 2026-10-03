@@ -413,7 +413,7 @@ public class MainActivity extends Activity {
         }
         new android.app.AlertDialog.Builder(this)
             .setTitle("Delete page?")
-            .setMessage("Bill "" + safe(config.pages.get(index).pageName) + "" and its invoice values will be removed from this device.")
+            .setMessage("Bill \"" + safe(config.pages.get(index).pageName) + "\" and its invoice values will be removed from this device.")
             .setNegativeButton("Cancel", null)
             .setPositiveButton("Delete", (d,w) -> {
                 config.pages.remove(index);
