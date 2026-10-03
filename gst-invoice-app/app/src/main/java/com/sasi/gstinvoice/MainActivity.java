@@ -118,8 +118,7 @@ public class MainActivity extends Activity {
         root.addView(caption("Offline invoice generator · bundled invoice configuration · PDF export"), spaced(8));
 
         LinearLayout intro = card();
-        intro.addView(heading("Invoice pages", 19));
-        intro.addView(caption(config.pages.size() + " saved bill configuration" + (config.pages.size() == 1 ? "" : "s") + ". Choose a bill to edit or generate."));
+        intro.addView(heading("Invoice", 19));
         root.addView(intro, spaced(14));
 
         for (int i = 0; i < config.pages.size(); i++) addPageCard(root, i);
