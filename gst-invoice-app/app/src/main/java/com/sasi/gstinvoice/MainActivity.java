@@ -290,12 +290,12 @@ public class MainActivity extends Activity {
         String[] names={"January","February","March","April","May","June","July","August","September","October","November","December"};
         String result=text;
         for(String old:names) {
-            result=result.replaceAll("(?i)\\\\b"+old+"\\\\b", newMonth);
+            result=result.replaceAll("(?i)\\b"+old+"\\b", newMonth);
         }
         // Also support abbreviated month names such as Aug/Sep/Oct in user-created templates.
         String[] abbr={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
         for(String old:abbr) {
-            result=result.replaceAll("(?i)\\\\b"+old+"\\\\b", newMonth.substring(0,3));
+            result=result.replaceAll("(?i)\\b"+old+"\\b", newMonth.substring(0,3));
         }
         return result;
     }
