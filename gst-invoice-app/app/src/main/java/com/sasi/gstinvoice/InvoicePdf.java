@@ -47,9 +47,6 @@ public final class InvoicePdf {
         Paint normal = paint(8.8f, false, false);
         Paint bold = paint(9.0f, true, false);
         Paint italic = paint(8.6f, false, true);
-        Paint normal = paint(8.8f, false, false);
-        Paint bold = paint(9.0f, true, false);
-        Paint italic = paint(8.6f, false, true);
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
         line.setColor(Color.BLACK);
         line.setStyle(Paint.Style.STROKE);
