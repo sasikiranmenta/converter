@@ -144,7 +144,11 @@ public class MainActivity extends Activity {
     private void showBatchGenerate() {
         final Calendar now = Calendar.getInstance();
         final int[] selectedMonth = {now.get(Calendar.MONTH)};
-        final int[] selectedYear = {now.get(Calendar.YEAR)};\n        final Calendar selectedDate = Calendar.getInstance();\n        selectedDate.set(Calendar.YEAR, selectedYear[0]);\n        selectedDate.set(Calendar.MONTH, selectedMonth[0]);\n        selectedDate.set(Calendar.DAY_OF_MONTH, selectedDate.getActualMaximum(Calendar.DAY_OF_MONTH));
+        final int[] selectedYear = {now.get(Calendar.YEAR)};
+        final Calendar selectedDate = Calendar.getInstance();
+        selectedDate.set(Calendar.YEAR, selectedYear[0]);
+        selectedDate.set(Calendar.MONTH, selectedMonth[0]);
+        selectedDate.set(Calendar.DAY_OF_MONTH, selectedDate.getActualMaximum(Calendar.DAY_OF_MONTH));
         final boolean[] checked = new boolean[config.pages.size()];
         java.util.Arrays.fill(checked, true);
 
@@ -184,7 +188,27 @@ public class MainActivity extends Activity {
         yearPicker.setMaxValue(2100);
         yearPicker.setValue(selectedYear[0]);
         monthRow.addView(yearPicker);
-        root.addView(monthRow);\n\n        TextView dateLabel = new TextView(this);\n        dateLabel.setText("Invoice date");\n        dateLabel.setTextSize(14);\n        dateLabel.setPadding(0, dp(12), dp(8), 0);\n        root.addView(dateLabel);\n        Button dateButton = action(new SimpleDateFormat("d.M.yy", Locale.US).format(selectedDate.getTime()), false);\n        dateButton.setOnClickListener(v -> {\n            Calendar current = (Calendar) selectedDate.clone();\n            android.app.DatePickerDialog picker = new android.app.DatePickerDialog(this, (view, y, m, d) -> {\n                selectedDate.set(Calendar.YEAR, y);\n                selectedDate.set(Calendar.MONTH, m);\n                selectedDate.set(Calendar.DAY_OF_MONTH, d);\n                dateButton.setText(new SimpleDateFormat("d.M.yy", Locale.US).format(selectedDate.getTime()));\n            }, current.get(Calendar.YEAR), current.get(Calendar.MONTH), current.get(Calendar.DAY_OF_MONTH));\n            picker.getDatePicker().setMinDate(monthStart(selectedDate).getTimeInMillis());\n            picker.getDatePicker().setMaxDate(monthEnd(selectedDate).getTimeInMillis());\n            picker.show();\n        });\n        root.addView(dateButton, spaced(6));
+        root.addView(monthRow);
+
+        TextView dateLabel = new TextView(this);
+        dateLabel.setText("Invoice date");
+        dateLabel.setTextSize(14);
+        dateLabel.setPadding(0, dp(12), dp(8), 0);
+        root.addView(dateLabel);
+        Button dateButton = action(new SimpleDateFormat("d.M.yy", Locale.US).format(selectedDate.getTime()), false);
+        dateButton.setOnClickListener(v -> {
+            Calendar current = (Calendar) selectedDate.clone();
+            android.app.DatePickerDialog picker = new android.app.DatePickerDialog(this, (view, y, m, d) -> {
+                selectedDate.set(Calendar.YEAR, y);
+                selectedDate.set(Calendar.MONTH, m);
+                selectedDate.set(Calendar.DAY_OF_MONTH, d);
+                dateButton.setText(new SimpleDateFormat("d.M.yy", Locale.US).format(selectedDate.getTime()));
+            }, current.get(Calendar.YEAR), current.get(Calendar.MONTH), current.get(Calendar.DAY_OF_MONTH));
+            picker.getDatePicker().setMinDate(monthStart(selectedDate).getTimeInMillis());
+            picker.getDatePicker().setMaxDate(monthEnd(selectedDate).getTimeInMillis());
+            picker.show();
+        });
+        root.addView(dateButton, spaced(6));
 
         TextView selectHint = heading("Bills to generate", 16);
         selectHint.setPadding(0, dp(16), 0, dp(4));
@@ -223,7 +247,20 @@ public class MainActivity extends Activity {
         dialog.show();
     }
 
-    private Calendar monthStart(Calendar source) {\n        Calendar c=(Calendar)source.clone();\n        c.set(Calendar.DAY_OF_MONTH,1); c.set(Calendar.HOUR_OF_DAY,0); c.set(Calendar.MINUTE,0); c.set(Calendar.SECOND,0); c.set(Calendar.MILLISECOND,0);\n        return c;\n    }\n\n    private Calendar monthEnd(Calendar source) {\n        Calendar c=monthStart(source);\n        c.set(Calendar.DAY_OF_MONTH,c.getActualMaximum(Calendar.DAY_OF_MONTH));\n        c.set(Calendar.HOUR_OF_DAY,23); c.set(Calendar.MINUTE,59); c.set(Calendar.SECOND,59); c.set(Calendar.MILLISECOND,999);\n        return c;\n    }\n\n    private void generateBatch(boolean[] checked, int year, int month, Calendar selectedDate) {
+    private Calendar monthStart(Calendar source) {
+        Calendar c=(Calendar)source.clone();
+        c.set(Calendar.DAY_OF_MONTH,1); c.set(Calendar.HOUR_OF_DAY,0); c.set(Calendar.MINUTE,0); c.set(Calendar.SECOND,0); c.set(Calendar.MILLISECOND,0);
+        return c;
+    }
+
+    private Calendar monthEnd(Calendar source) {
+        Calendar c=monthStart(source);
+        c.set(Calendar.DAY_OF_MONTH,c.getActualMaximum(Calendar.DAY_OF_MONTH));
+        c.set(Calendar.HOUR_OF_DAY,23); c.set(Calendar.MINUTE,59); c.set(Calendar.SECOND,59); c.set(Calendar.MILLISECOND,999);
+        return c;
+    }
+
+    private void generateBatch(boolean[] checked, int year, int month, Calendar selectedDate) {
         Calendar cal=Calendar.getInstance();
         cal.set(Calendar.YEAR,year);
         cal.set(Calendar.MONTH,month);
